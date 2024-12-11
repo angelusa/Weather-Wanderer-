@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WeatherWanderer - Weather & Forecast</title>
+    <link rel="stylesheet" href="style/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="search-box">
+            <input type="text" id="cityInput" placeholder="Enter city name (e.g., London, New York, Tokyo)">
+            <button onclick="searchWeather()">Search Weather</button>
+        </div>
+        
+        <div class="weather-card current-weather" id="currentWeather">
+            <!-- Current weather will be displayed here -->
+        </div>
+        
+        <div class="forecast-container" id="forecast">
+            <!-- 5-day forecast will be displayed here -->
+        </div>
+    </div>
+
+    <script src="js/WeatherService.js"></script>
+    <script>
+        const weatherService = new WeatherService();
+
+        async function searchWeather() {
+            const cityName = document.getElementById('cityInput').value;
+            if (!cityName) return;
+            
+            try {
+                // Get and display current weather
+                const currentWeather = await weatherService.getWeatherByCity(cityName);
+                displayCurrentWeather(currentWeather);
+                
+                // Get and display forecast
+                const forecast = await weatherService.getForecastByCity(cityName);
+                displayForecast(forecast);
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('currentWeather').innerHTML = 
+                    '<p>Error fetching weather data. Please try again.</p>';
+            }
+        }
+
+        function displayCurrentWeather(data) {
+            const currentWeatherDiv = document.getElementById('currentWeather');
+            currentWeatherDiv.innerHTML = `
+                <h2>${data.name}, ${data.sys.country}</h2>
+                <img class="weather-icon" src="http://openweathermap.org/img/w/${data.weather[0].icon}.png" alt="Weather icon">
+                <div class="temperature">${Math.round(data.main.temp)}°C</div>
+                <div class="description">${data.weather[0].description}</div>
+                <div class="details">
+                    <p>Humidity: ${data.main.humidity}%</p>
+                    <p>Wind Speed: ${data.wind.speed} m/s</p>
+                    <p>Pressure: ${data.main.pressure} hPa</p>
+                </div>
+            `;
+        }
+
+        function displayForecast(data) {
+            const forecastDiv = document.getElementById('forecast');
+            forecastDiv.innerHTML = '';
+            
+            // Get one forecast per day (every 8th item as data is in 3-hour intervals)
+            const dailyForecasts = data.list.filter((item, index) => index % 8 === 0);
+            
+            dailyForecasts.forEach(day => {
+                const date = new Date(day.dt * 1000);
+                const forecastCard = document.createElement('div');
+                forecastCard.className = 'forecast-card';
+                forecastCard.innerHTML = `
+                    <h3>${date.toLocaleDateString('en-US', { weekday: 'short' })}</h3>
+                    <p>${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</p>
+                    <img class="weather-icon" src="http://openweathermap.org/img/w/${day.weather[0].icon}.png" alt="Weather icon">
+                    <div class="temperature">${Math.round(day.main.temp)}°C</div>
+                    <div class="description">${day.weather[0].description}</div>
+                    <div class="details">
+                        <p>Humidity: ${day.main.humidity}%</p>
+                        <p>Wind: ${day.wind.speed} m/s</p>
+                    </div>
+                `;
+                forecastDiv.appendChild(forecastCard);
+            });
+        }
+    </script>
+</body>
+</html>
